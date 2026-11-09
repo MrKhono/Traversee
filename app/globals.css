@@ -99,8 +99,17 @@ body {
   justify-content: center;
 }
 .title .arrow {
-  font-size: 0.6em;
-  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+  width: 0.62em;
+  color: var(--gold-0);
+  -webkit-text-fill-color: var(--gold-0);
+  opacity: 0.9;
+}
+.title .arrow svg {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 2px 6px rgba(245, 197, 24, 0.35));
 }
 .title.celebrate {
   display: block;
