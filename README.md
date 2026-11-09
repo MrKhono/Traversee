@@ -37,3 +37,4 @@ Le logo est dans `public/logo.png` — remplace-le par le tien si besoin.
 
 Next.js 15 (App Router) · React 18 · TypeScript · Canvas 2D, zéro dépendance externe.
 # Traversee
+# Traversee
