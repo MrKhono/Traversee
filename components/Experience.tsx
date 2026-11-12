@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { config } from "@/lib/config";
 import CrossingScene from "./CrossingScene";
+import Fireworks from "./Fireworks";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -13,7 +14,21 @@ export default function Experience() {
 
   const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const [arrived, setArrived] = useState(false);
+  const [preview, setPreview] = useState(false);
   const progressRef = useRef(0);
+
+  // Mode aperçu : via l'URL (?apercu=1) pour visualiser l'arrivée avant l'heure.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.has("apercu") || q.has("preview")) setPreview(true);
+  }, []);
+
+  // Écran de célébration : réel (décompte terminé) ou simulé (aperçu).
+  const celebrate = arrived || preview;
+
+  // Le bouton d'aperçu n'est visible qu'en développement.
+  // (L'URL ?apercu=1 reste utilisable partout, mais discrètement.)
+  const isDev = process.env.NODE_ENV === "development";
 
   useEffect(() => {
     const update = () => {
@@ -44,6 +59,42 @@ export default function Experience() {
     return () => clearInterval(id);
   }, [target, start]);
 
+  if (celebrate) {
+    const c = config.celebration;
+    return (
+      <main className="stage celebrating">
+        <Fireworks />
+
+        <div className="content fade-in">
+          <Image
+            className="logo glow"
+            src="/logo.png"
+            alt="Perez Chapel Dakar"
+            width={140}
+            height={140}
+            priority
+          />
+
+          <p className="eyebrow shimmer">{c.eyebrow}</p>
+          <h1 className="brand">{c.brand}</h1>
+          <p className="wish">{c.wish}</p>
+          <div className="year-xl">{c.year}</div>
+          <p className="verse">{c.verse}</p>
+        </div>
+
+        {isDev && preview && !arrived && (
+          <button
+            type="button"
+            className="preview-toggle exit"
+            onClick={() => setPreview(false)}
+          >
+            {config.previewExit}
+          </button>
+        )}
+      </main>
+    );
+  }
+
   return (
     <main className="stage">
       <CrossingScene progressRef={progressRef} arrived={arrived} />
@@ -61,45 +112,106 @@ export default function Experience() {
           priority
         />
 
-        {!arrived ? (
-          <>
-            <p className="eyebrow">{config.eyebrow}</p>
-            <h1 className="title">
-              <span>{config.fromYear}</span>
-              <span className="arrow" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M3 12h16M13 6l6 6-6 6"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              <span>{config.toYear}</span>
-            </h1>
-            <p className="tagline">{config.tagline}</p>
+        <p className="eyebrow">{config.eyebrow}</p>
+        <h1 className="title">
+          <span>{config.fromYear}</span>
+          <span className="arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M3 12h16M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <span>{config.toYear}</span>
+        </h1>
+        <p className="tagline">{config.tagline}</p>
 
-            <div className="countdown" aria-live="polite">
-              <Unit n={t.d} label="Jours" />
-              <Unit n={t.h} label="Heures" />
-              <Unit n={t.m} label="Minutes" />
-              <Unit n={t.s} label="Secondes" />
-            </div>
+        <div className="countdown" aria-live="polite">
+          <Unit n={t.d} label="Jours" />
+          <Unit n={t.h} label="Heures" />
+          <Unit n={t.m} label="Minutes" />
+          <Unit n={t.s} label="Secondes" />
+        </div>
 
-            <p className="verse">{config.verseBefore}</p>
-          </>
-        ) : (
-          <>
-            <h1 className="title celebrate">{config.arrivedTitle}</h1>
-            <p className="tagline big">{config.arrivedSubtitle}</p>
-          </>
-        )}
+        <p className="verse">{config.verseBefore}</p>
 
         <p className="place">{config.place}</p>
+
+        <Ticket />
       </div>
+
+      {isDev && (
+        <button
+          type="button"
+          className="preview-toggle"
+          onClick={() => setPreview(true)}
+        >
+          {config.previewEnter}
+        </button>
+      )}
     </main>
+  );
+}
+
+function Ticket() {
+  const { ticket } = config;
+
+  const downloadPdf = () => {
+    const a = document.createElement("a");
+    a.href = ticket.pdfUrl;
+    a.download = ticket.fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  return (
+    <div className="ticket">
+      <button type="button" className="ticket-btn" onClick={downloadPdf}>
+        <svg
+          className="ticket-ico"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 3v11m0 0l4-4m-4 4l-4-4M5 20h14"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {ticket.label}
+      </button>
+
+      {(ticket.appleWalletUrl || ticket.googleWalletUrl) && (
+        <div className="wallet-row">
+          {ticket.appleWalletUrl && (
+            <a className="wallet-btn" href={ticket.appleWalletUrl}>
+               Ajouter à Apple Wallet
+            </a>
+          )}
+          {ticket.googleWalletUrl && (
+            <a
+              className="wallet-btn"
+              href={ticket.googleWalletUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Ajouter à Google Wallet
+            </a>
+          )}
+        </div>
+      )}
+
+      <p className="ticket-note">{ticket.note}</p>
+    </div>
   );
 }
 
